@@ -103,8 +103,8 @@ Database.prototype.agregar_url=function(connection,url){
 Database.prototype.agregar_propiedad=function(connection,url,precio, descripcion, titulo, datos,imagenes){
   var prop=new Promise(function(resolve,reject){
     precio=SoloNumeros(precio);
-    //console.log("precio "+precio);
-    //console.log("insert into propiedades (url,precio,descripcion,titulo) values('"+url+"',"+precio+",'"+descripcion+"','"+titulo+"')");
+    // console.log("precio "+precio);
+    // console.log("insert into propiedades (url,precio,descripcion,titulo) values('"+url+"',"+precio+",'"+descripcion+"','"+titulo+"')");
     connection.query("insert into propiedades (url,precio,descripcion,titulo) values('"+url+"',"+precio+",'"+descripcion+"','"+titulo+"')",
     function(err, rows, fields){
       if(err){
@@ -144,6 +144,77 @@ Database.prototype.agregar_propiedad=function(connection,url,precio, descripcion
       });
       img.then(function(dimension){
         console,log("imagenes guardadas"+dimension);
+      })
+      .catch(function(err){
+        console,log("imagenes "+err);
+      })
+
+    })
+    .catch(function(err){
+      console.log("datos "+err);
+    })
+  })
+  .catch(function(err){
+    console.log("propiedades "+err);
+  });
+}
+Database.prototype.cargar_propiedad=function(connection,id,precio, descripcion, titulo, datos,imagenes){
+  var prop=new Promise(function(resolve,reject){
+    //precio=SoloNumeros(precio);
+    //console.log("precio "+precio);
+    //console.log("insert into propiedades (url,precio,descripcion,titulo) values('"+url+"',"+precio+",'"+descripcion+"','"+titulo+"')");
+    connection.query("select * from propiedades where id="+id+"",
+    function(err, rows, fields){
+      if(err){
+        reject(err);
+      }else{
+
+        precio=rows[0].precio;
+        descripcion=rows[0].descripcion;
+        titulo=rows[0].titulo
+        console.log(precio,descripcion,titulo);
+        resolve(rows);
+      }
+    })
+  });
+  prop.then(function(rows){
+
+    var dat=new Promise(function(resolve,reject){
+
+        console.log("select * from datos_propiedades where prop_id="+id);
+        connection.query("select * from datos_propiedades where prop_id="+id,
+        function(err,rows,fields){
+          if(err){
+            reject(err);
+          }else{
+            rows.forEach(function(elem){
+              //console.log(elem.dato);
+              datos.push(elem.dato);
+            });
+            resolve(rows);
+          }
+        })
+
+
+    });
+    dat.then(function(rows){
+      var img=new Promise(function(resolve,reject){
+          console.log("select * from imagenes_propiedades where prop_id="+id);
+          connection.query("select * from imagenes_propiedades where prop_id="+id,
+          function(err,rows,fields){
+            if(err){
+              reject(err);
+            }else{
+              rows.forEach(function(elem){
+                //console.log(elem.imagen);
+                imagenes.push(elem.imagen);
+              });
+              resolve(rows);
+            }
+          });
+      });
+      img.then(function(rows){
+        console,log("imagenes guardadas"+rows.length);
       })
       .catch(function(err){
         console,log("imagenes "+err);

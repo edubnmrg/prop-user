@@ -24,15 +24,16 @@ app.engine('handlebars', exphbs({defaultLayout: 'main'}));
 app.set('view engine', 'handlebars');
 
 var basicAuth = require('basic-auth');
-VALID_USER = "AGENTE"
-VALID_PASSWORD = "ORION"
-var titulo, descripcion,precio,datos_arr,imagenes_arr
+VALID_USER = "AGENTE";
+VALID_PASSWORD = "ORION";
+var ahora=new Date();
+console.log(ahora.getTime());
+console.log(ahora.toTimeString());
+var titulo, descripcion,precio;
+var datos_arr=[];
+var imagenes_arr=[];
 function cheer(res,agent,html){
-  //console.log("cheers");
-
   var $ = cheerio.load(html);
-  console.log("cheerio");
-
   titulo = $("h1").text()
   precio =$(".venta").text()
   descripcion =  $("#id-descipcion-aviso").text().trim()
@@ -73,6 +74,7 @@ connection.connect(function(err){
   }
 });
 var hayrows=[];
+
 app.get(`/`,auth,function(req,res){
   res.cookie("agente", true);
   var visitas=[];
@@ -131,60 +133,108 @@ app.get(`/props`,function(req,res){
           });
           purl.then(function (url){
             cheer(res,agent,html);
-            console.log("despues de cheer");
-            console.log(titulo,precio,descripcion,datos_arr,imagenes_arr,agent);
+            //console.log("despues de cheer");
+            //console.log(titulo,precio,descripcion,datos_arr,imagenes_arr,agent);
             if(!agent){
               database.aumentar_visitas(connection,url);}
           })
             .catch(function(url){
-              console.log(url + "no esta en la base"+"\n");
-              console.log("antes nueva_propiedad es "+nueva_propiedad+"\n");
+              //console.log(url + "no esta en la base"+"\n");
+              //console.log("antes nueva_propiedad es "+nueva_propiedad+"\n");
               nueva_propiedad=true;
-              console.log("despues nueva_propiedad es "+nueva_propiedad);
+              //console.log("despues nueva_propiedad es "+nueva_propiedad);
               database.agregar_url(connection,url);
-              console.log("despues de agregar_url");
+              //console.log("despues de agregar_url");
               cheer(res,agent,html);
-              console.log(titulo,precio,descripcion,datos_arr,imagenes_arr,agent);
+              //console.log(titulo,precio,descripcion,datos_arr,imagenes_arr,agent);
               database.agregar_propiedad(connection,url,precio,descripcion,titulo,datos_arr,imagenes_arr);
             });
-
+            res.render('props',{precio,descripcion,titulo,datos_arr,imagenes_arr});
         }
       });
     };
   });
 
-          //console.log("ANTES DE PROMISE "+url);
+  app.get(`/propsid`,function(req,res){
+    // console.log(req.query.id);
+    // console.log("propsid");
+    ahora.getTime();
+    var titulo,descripcion,precio;
+    var datos_arr=[];
+    var imagenes_arr=[];
+    console.log(ahora.toTimeString());
+    if(req.query.id){
+      var agent = (req.cookies.agente == "true");
+      if(!agent){
+        database.aumentar_visitas(connection,url);
+      }
+      new Promise(function(resolve,reject){
+        console.log("select * from propiedades where propiedades.id="+req.query.id+";");
+        connection.query("select * from propiedades where propiedades.id="+req.query.id+";",function(err,rows,fields){
+          if(err){
+            reject(err);
+          }else{
+            console.log("lineas "+rows.length);
+            console.log(rows[0].titulo);
+            titulo=rows[0].titulo;
+            descripcion=rows[0].descripcion;
+            precio=rows[0].precio;
 
+            resolve(rows);
+          }
+        })
 
+        }).then(function(rows){
+          new Promise(function(resolve,reject){
+          console.log("select * from datos_propiedades where prop_id="+req.query.id+";");
+          connection.query("select * from datos_propiedades where prop_id="+req.query.id+";",function(err,rows,fields){
+            if(err){
+              reject(err);
+            }else{
+              console.log("datos "+rows.length);
+              console.log(rows[0].dato);
+              rows.forEach(function(elem){
+                datos_arr.push(elem.dato)
+              })
+              resolve(rows);
+            }
+          })
+        }).then(function(rows){
 
-              // database.read(function(visitas){
-              //   var found = false;
-              //   for (var i = 0; i < visitas.length && !found; i++) {
-              //   //console.log(visitas[i].texto +" "+ url+" "+(visitas[i].texto === url))
-              //     if (visitas[i].texto === url) {
-              //       visitas[i].numero++
-              //       found = true;
-              //     }
-              //   }
-              //   if(!found)  {
-              //     database.write(url+","+"0"+"\n");
-              //     // var q="insert into consultas(id,url,agente_id,cliente_id,visitas) values(default," + url +",4,1,default"
-              //     // connection.query(q, function(err, rows, fields) {
-              //     //   if (!err)
-              //     //     console.log('Se agrego  ', rows, 'fila(s)');
-              //     //   else
-              //     //     console.log('Error insertando url.');
-              //     // });
-              //   }else{
-              //     if(!agent){
-              //       fs.unlinkSync('./historial.txt');
-              //       for (var i = 0, len = visitas.length; i < len; i++) {
-              //         database.write(visitas[i].texto+","+visitas[i].numero+"\n");
-              //       };
-              //     }
-              //   }
-              // });
+          new Promise(function(resolve,request){
+            console.log("select * from imagenes_propiedades where prop_id="+req.query.id+";");
+            connection.query("select * from imagenes_propiedades where prop_id="+req.query.id+";",function(err,rows,fields){
+              if(err){
+                reject(err);
+              }else{
+                console.log("imagenes "+rows.length);
+                console.log(rows[0].imagen);
+                rows.forEach(function(elem){
+                  imagenes_arr.push(elem.imagen)
+                })
+                resolve(rows);
+              }
+            })
+          }).then(function(rows){
+            console.log("entro en then");
+            res.render('props',{precio,descripcion,titulo,datos_arr,imagenes_arr})
+          },function(err){
+            console.log("error")
+            res.render('err',{err})
+          })
 
+        },function(err){
+          console.log("error")
+          res.render('err',{err})
+        });
+          //res.render('props',{precio,descripcion,titulo,datos_arr,imagenes_arr})
+        }//end then
+        ,function(err){
+          console.log("error")
+          res.render('err',{err})
+      })//end promise prop
+    };
+  });
 
 
       app.listen(`8081`);

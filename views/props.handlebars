@@ -6,18 +6,16 @@
   <h2> Precio de Venta: {{precio}} </h2>
   <p> {{descripcion}} </p>
   <ul>
-    {{#each datos}}
+    {{#each datos_arr}}
     <li>
-			{{this.texto}}
+			{{this}}
 
 		</li>
     {{/each}}
   </ul>
   <ul>
     {{#each imagenes_arr}}
-
-        <img style='vertical-align:top;display:inline-block; margin: 10px;' width='300' src={{this.imagen}} />
-
+        <img style='vertical-align:top;display:inline-block; margin: 10px;' width='300' src={{this}} />
     {{/each}}
   </ul>
 </div>
