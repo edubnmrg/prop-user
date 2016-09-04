@@ -1,0 +1,18 @@
+{
+  "name": "node-web-scrape",
+  "version": "0.0.2",
+  "description": "Scrape the web",
+  "main": "server-js",
+  "author": "edu",
+  "dependencies": {
+    "cheerio": "latest",
+    "express": "latest",
+    "express-handlebars": "latest",
+    "request": "latest",
+    "cookies":"latest",
+    "mysql":"latest"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}
