@@ -18,7 +18,7 @@ var connection = mysql.createConnection({
 
 
 app.use(cookieParser());
-app.use(express.static('./imagenes'));
+app.use('/imagenes',express.static('imagenes'));
 app.use('/public',express.static('public'));
 app.engine('handlebars', exphbs({defaultLayout: 'main'}));
 app.set('view engine', 'handlebars');
@@ -27,8 +27,7 @@ var basicAuth = require('basic-auth');
 VALID_USER = "AGENTE";
 VALID_PASSWORD = "ORION";
 var ahora=new Date();
-console.log(ahora.getTime());
-console.log(ahora.toTimeString());
+
 var titulo, descripcion,precio;
 var datos_arr=[];
 var imagenes_arr=[];
@@ -79,6 +78,39 @@ app.get(`/`,auth,function(req,res){
   res.cookie("agente", true);
   var visitas=[];
   hayrows=[];
+  new Promise(function(resolve,reject){connection.query("select * from propiedades;",function(err, rows, fields){
+    if(err){
+      console.log(err);
+    }else{
+      //console.log("rowslength "+rows.length);
+      if(rows.length==0){
+        var novis=err;
+        //console.log("reject");
+        reject(novis);}
+        else{
+          for(var i = 0;i < rows.length;i++){
+            hayrows.push(rows[i]);
+            //console.log("elem "+rows[i].url);
+          };
+          //console.log("resolve");
+          resolve(hayrows);
+        }}
+      });
+    }
+  ).then(function(hayrows){
+    //console.log(hayrows.length,hayrows[0].url);
+    res.render('props_form',{hayrows});
+  }
+).catch(function(novis){
+  //console.log(" novis "+novis);
+  res.render('props_form',{hayrows});
+});
+
+});
+app.get(`/viejo`,auth,function(req,res){
+  res.cookie("agente", true);
+  var visitas=[];
+  hayrows=[];
   new Promise(function(resolve,reject){connection.query("select * from consultas;",function(err, rows, fields){
     if(err){
       console.log(err);
@@ -99,16 +131,15 @@ app.get(`/`,auth,function(req,res){
       });
     }
   ).then(function(hayrows){
-    console.log(hayrows.length,hayrows[0].url);
+    //console.log(hayrows.length,hayrows[0].url);
     res.render('props_form',{hayrows});
   }
 ).catch(function(novis){
-  console.log(" novis "+novis);
+  //console.log(" novis "+novis);
   res.render('props_form',{hayrows});
 });
 
 });
-
 
 app.get(`/props`,function(req,res){
   if(req.query.query_url){
@@ -126,7 +157,7 @@ app.get(`/props`,function(req,res){
               if(rows.length!=0){
                   resolve(url);}
                 else{
-                  console.log("url no esta "+rows.length);
+                  //console.log("url no esta "+rows.length);
                   reject(url);}
                 }
             });
@@ -162,37 +193,41 @@ app.get(`/props`,function(req,res){
     var titulo,descripcion,precio;
     var datos_arr=[];
     var imagenes_arr=[];
-    console.log(ahora.toTimeString());
     if(req.query.id){
       var agent = (req.cookies.agente == "true");
       if(!agent){
-        database.aumentar_visitas(connection,url);
+        //database.aumentar_visitas(connection,url);
+        new Promise(function(resolve,reject){
+          console.log("update propiedades set visitas=visitas+1 where propiedades.id="+req.query.id+";");
+          connection.query("update propiedades set visitas=visitas+1 where propiedades.id="+req.query.id+";",function(err,rows,fields){
+
+          })
+        })
       }
       new Promise(function(resolve,reject){
-        console.log("select * from propiedades where propiedades.id="+req.query.id+";");
+
         connection.query("select * from propiedades where propiedades.id="+req.query.id+";",function(err,rows,fields){
           if(err){
             reject(err);
           }else{
-            console.log("lineas "+rows.length);
-            console.log(rows[0].titulo);
-            titulo=rows[0].titulo;
-            descripcion=rows[0].descripcion;
-            precio=rows[0].precio;
-
-            resolve(rows);
+            if(rows.length>0){
+              titulo=rows[0].titulo;
+              descripcion=rows[0].descripcion;
+              precio=rows[0].precio;
+              resolve(rows);
+            }else{
+              reject("no hay propiedad")
+            }
           }
         })
 
         }).then(function(rows){
           new Promise(function(resolve,reject){
-          console.log("select * from datos_propiedades where prop_id="+req.query.id+";");
+
           connection.query("select * from datos_propiedades where prop_id="+req.query.id+";",function(err,rows,fields){
             if(err){
               reject(err);
             }else{
-              console.log("datos "+rows.length);
-              console.log(rows[0].dato);
               rows.forEach(function(elem){
                 datos_arr.push(elem.dato)
               })
@@ -202,21 +237,23 @@ app.get(`/props`,function(req,res){
         }).then(function(rows){
 
           new Promise(function(resolve,request){
-            console.log("select * from imagenes_propiedades where prop_id="+req.query.id+";");
+
             connection.query("select * from imagenes_propiedades where prop_id="+req.query.id+";",function(err,rows,fields){
               if(err){
                 reject(err);
               }else{
-                console.log("imagenes "+rows.length);
-                console.log(rows[0].imagen);
+                if (rows.length>0){
                 rows.forEach(function(elem){
                   imagenes_arr.push(elem.imagen)
                 })
                 resolve(rows);
+              }else{
+                resolve("no hay imagenes")
+              }
               }
             })
           }).then(function(rows){
-            console.log("entro en then");
+
             res.render('props',{precio,descripcion,titulo,datos_arr,imagenes_arr})
           },function(err){
             console.log("error")
@@ -236,7 +273,25 @@ app.get(`/props`,function(req,res){
     };
   });
 
-
-      app.listen(`8081`);
+app.get(`/borrar`,function(req,res){
+    if(req.query.id){
+      new Promise(function(resolve,reject){
+        console.log("delete from propiedades where id="+req.query.id+";");
+        connection.query("delete from propiedades where id="+req.query.id+";",function(err,rows,fields){
+          if(err){
+            reject(err)
+          }else{
+            resolve(rows)
+          }
+        })
+      }).then(function(rows){
+        res.redirect('/');
+      },function(err){
+        console.log("error")
+        res.render('err',{err})
+      });
+    }
+});
+      app.listen(process.argv[2]);
       console.log(`Server is up and running`);
       exports=module.exports=app;

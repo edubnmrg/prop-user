@@ -12,16 +12,21 @@
     <thead style="background-color:#1b79bb;color:#ffffff">
         <th>Propiedad</th>
         <th>Visitas</th>
-
+        <th></th>
     </thead>
     <tbody>
       {{#each hayrows}}
       <tr>
         <td class="col-md-12">
-          <a href=/props?query_url={{this.url}}>{{this.url}}</a>
+          <a href=/propsid?id={{this.id}}>{{this.url}}</a>
         </td>
         <td class="col-sm-1">
           {{this.visitas}}
+        </td>
+        <td class="col-sm-1">
+          <a href="/borrar?id={{this.id}}" onclick="return confirm('Desea Borrar el Registro?')">
+          <img src="/imagenes/borrar.png"  height="20" width="20"/>
+          </a>
         </td>
       </tr>
       {{/each}}
@@ -29,6 +34,7 @@
 
   </table>
   </div>
+
 </div>
 
 
